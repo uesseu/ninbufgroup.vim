@@ -1,3 +1,4 @@
+
 scriptencoding utf-8
 " ninbufgroup.vim
 " Last Change:	2025 Apr-29
@@ -40,32 +41,55 @@ function! bufgroup#_filter(buf, word)
 endfunction
 
 let s:BufGroups = #{all: []}
-let s:BufGroupsLocation = #{all: 1}
-let s:BufGroupName = 'all'
+let t:BufGroupsLocation = #{all: 1}
+let t:BufGroupName = 'all'
 
 function bufgroup#get_groupname()
-  return s:BufGroupName
+  return t:BufGroupName
 endfunction
 
 function bufgroup#open_group(key)
   " open buffer group named key.
-  let s:BufGroups[s:BufGroupName] = bufgroup#get()
-  call extend(s:BufGroupsLocation, {s:BufGroupName : bufnr()})
-  let s:BufGroupName = a:key
-  call bufgroup#open_buf(s:BufGroups[s:BufGroupName])
-  exec s:BufGroupsLocation[a:key].'b'
+  let s:BufGroups[t:BufGroupName] = bufgroup#get()
+  call extend(t:BufGroupsLocation, {t:BufGroupName : bufnr()})
+  let t:BufGroupName = a:key
+  call bufgroup#open_buf(s:BufGroups[t:BufGroupName])
+  exec t:BufGroupsLocation[a:key].'b'
+endfunction
+
+function bufgroup#remove_group(key='.')
+  if a:key == 'all'
+    return
+  elseif a:key == '.'
+    let key = t:BufGroupName
+  else
+    let key = a:key
+  endif
+  call bufgroup#next()
+  unlet s:BufGroups[key]
+  unlet t:BufGroupsLocation[key]
+endfunction
+
+function bufgroup#rename_group(key)
+  if a:key == 'all'
+    return
+  endif
+  call extend(s:BufGroups, {a:key : s:BufGroups[t:BufGroupName]})
+  call bufgroup#remove_group(t:BufGroupName)
+  let t:BufGroupName = a:key
+  call bufgroup#open_group(a:key)
 endfunction
 
 function bufgroup#next()
   " Go to next buffer group
   let keys = s:BufGroups->keys()
-  call bufgroup#open_group(keys[(keys->index(s:BufGroupName)+1) % s:BufGroups->len()])
+  call bufgroup#open_group(keys[(keys->index(t:BufGroupName)+1) % s:BufGroups->len()])
 endfunction
 
 function bufgroup#prev()
   " Go to previous buffer group
   let keys = s:BufGroups->keys()
-  call bufgroup#open_group(keys[(keys->index(s:BufGroupName)-1) % s:BufGroups->len()])
+  call bufgroup#open_group(keys[(keys->index(t:BufGroupName)-1) % s:BufGroups->len()])
 endfunction
 
 
@@ -75,7 +99,7 @@ endfunction
 
 function bufgroup#new(key)
   call extend(s:BufGroups, {a:key : []})
-  let s:BufGroupName = a:key
+  let t:BufGroupName = a:key
   call bufgroup#open_group(a:key)
 endfunction
 
@@ -92,7 +116,7 @@ endfunction
 function bufgroup#new_filter(key)
   " Filter buffers and make new group
   call extend(s:BufGroups, {a:key : []})
-  let s:BufGroupName = a:key
+  let t:BufGroupName = a:key
   eval bufgroup#get()->bufgroup#_filter(a:key)->bufgroup#open_buf()
   let s:BufGroups[a:key] = uniq(s:BufGroups[a:key] + bufgroup#get())
   call bufgroup#open_group(a:key)
@@ -130,14 +154,17 @@ function! bufgroup#open_buf(group, type=[''])
   exec 'silent! bn'
 endfunction
 
-function bufgroup#tabline(shownum=0)
+function bufgroup#tabline(shownum=0, edge=5)
   let result = ''
   let num = 0
   for n in execute('ls')->split('\n')
     let label = pathshorten(n[10: 9 + n[10:]->stridx("\"")])
     let num = num + 1
   endfor
-  let length = winwidth(0) / num - 2
+  let length = (winwidth(0) - a:edge) / num - 2
+  if length > winwidth(0) / 4
+    let length = winwidth(0) / 4
+  endif
   for n in execute('ls')->split('\n')
     let label = n[10: 9 + n[10:]->stridx("\"")]->pathshorten(length)[:length]
     let label = n[4] == '%' ? '%#TabLineSel#'. label : '%#TabLine#'.label
@@ -150,7 +177,12 @@ function bufgroup#tabline(shownum=0)
 endfunction
 
 function bufgroup#_make_tab()
+  let BufGroupsLocation = t:BufGroupsLocation
+  let BufGroupName = t:BufGroupName
   tabnew
+  let t:BufGroupsLocation = BufGroupsLocation
+  let t:BufGroupName = BufGroupName
+  call bufgroup#open_group('all')
   bn
   $bd
 endfunction
