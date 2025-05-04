@@ -1,0 +1,122 @@
+*ninbufgroup.vim.txt*	  Simple buffer manager
+
+Author: Shoichiro Nakanishi <sheepwing@kyudai.jp>
+License: MIT license
+
+==============================================================================
+CONTENTS                                                        *slide-contents*
+
+Introduction		|ninbufgroup-introduction|
+Requirements  	 	|ninbufgroup-requirements|
+Basic usage  	 	|ninbufgroup-usage|
+Example	  	 	|ninbufgroup-example|
+
+==============================================================================
+INTRODUCTION                                                *ninbufgroup-introduction*
+# What is this?
+Ninbufgroup is a simple buffer manager.
+
+This plugin enables you manage vim buffers like web browsers.
+Recently, web browsers can manage "tabs, tab groups, and sessions".
+By this plugin, lets them work like below.
+
+| vim or neovim   | web browsers |
+| --------------- | ------------ |
+| tabs            | sessions     |
+| buffers         | tabs         |
+| list of buffers | tab groups   |
+
+There is a group named 'all', which cannot be deleted and
+contains all the visible buffers.
+==============================================================================
+Requirements                                    *ninbufgroup-requirements*
+
+It is simple and vim like editors can use this, I think.
+
+==============================================================================
+Usage                                               *ninbufgroup-usage*
+
+bufgroup#new({string})                             *bufgroup#new()*
+Make a buffer group.
+
+bufgroup#add({string})                             *bufgroup#add()*
+Add current buffer to a group.
+
+bufgroup#add_all({string})                             *bufgroup#add()*
+Add all displayed buffers to a group.
+
+bufgroup#open_group({string})                          *bufgroup#open_group()*
+Open a buffer named argument.
+
+bufgroup#remove_group()                          *bufgroup#remove()*
+Remove current group.
+
+bufgroup#rename_group()                          *bufgroup#rename()*
+Rename current group.
+
+bufgroup#next()                                    *bufgroup#next()*
+Open the next buffer.
+
+bufgroup#prev()                                    *bufgroup#prev()*
+Open the previous buffer.
+
+bufgroup#filter({string})                             *bufgroup#filter()*
+Filter buffers in current group.
+
+bufgroup#new_filter({string})                         *bufgroup#filter_new()*
+Filter buffers in current group and make a group.
+
+bufgroup#tabline()                              *bufgroup#tabline()*
+A function to make tabline.
+
+==============================================================================
+Example  	 	                    |ninbufgroup-example|
+This is part of my vimrc.
+
+Example of tab line
+>
+  function BufGroupTabLine()
+    return bufgroup#get_groupname().':'.bufgroup#tabline(1)
+  endfunction
+  function BufGroupMode()
+    set tabline=%!BufGroupTabLine()
+    set showtabline=2
+    noremap T :call bufgroup#_make_tab()<CR>
+  endfunction
+  au VimEnter * call BufGroupMode()
+<
+
+
+This codes enables...
+- gN opens next buf group
+- gP opens previous buf group
+- gn opens next buffer
+- gp opens previous buffer
+- BufGroupNew command makes new buffer group
+- BufGroupadd command adds current buffer to group
+- BufGroupadd command adds listed buffer to group
+- BufGroupOpen command opens named buffer group
+- BufGroupFilter command filter current buffer group
+- BufGroupFilterNew is same as BufGroupFilter but makes new group
+
+Example:
+>
+  noremap gN :call bufgroup#next()<CR>
+  noremap gP :call bufgroup#prev()<CR>
+  noremap gn :bn<CR>
+  noremap gp :bp<CR>
+  command! -nargs=1 BufGroupNew :call bufgroup#new(<f-args>)
+  command! -nargs=1 -complete=customlist,_BufComp
+	\ BufGroupAdd :call bufgroup#add(<f-args>)
+  command! -nargs=1 -complete=customlist,_BufComp
+	\ BufGroupAddAll :call bufgroup#add_all('<args>')
+  command! -nargs=1 -complete=customlist,_BufComp
+	\ BufGroupOpen :call bufgroup#open_group('<args>')
+  command! -nargs=1 BufGroupFilter :call bufgroup#filter(<f-args>)
+  command! -nargs=1 BufGroupNewFilter :call bufgroup#new_filter(<f-args>)
+  And then wrote like bellow.
+<
+
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:noet:fen:noet:
