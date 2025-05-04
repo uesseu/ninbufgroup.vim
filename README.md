@@ -25,7 +25,7 @@ au VimEnter * call BufGroupMode()
 
 
 And then, I wrote some keymaps and commands.
-```
+```vim
 noremap gN :call bufgroup#next()<CR>
 noremap gP :call bufgroup#prev()<CR>
 noremap gn :bn<CR>
