@@ -83,13 +83,15 @@ endfunction
 function bufgroup#next()
   " Go to next buffer group
   let keys = s:BufGroups->keys()
-  call bufgroup#open_group(keys[(keys->index(t:BufGroupName)+1) % s:BufGroups->len()])
+  call bufgroup#open_group(
+        \keys[(keys->index(t:BufGroupName)+1) % s:BufGroups->len()])
 endfunction
 
 function bufgroup#prev()
   " Go to previous buffer group
   let keys = s:BufGroups->keys()
-  call bufgroup#open_group(keys[(keys->index(t:BufGroupName)-1) % s:BufGroups->len()])
+  call bufgroup#open_group(
+        \keys[(keys->index(t:BufGroupName)-1) % s:BufGroups->len()])
 endfunction
 
 
@@ -168,7 +170,8 @@ function bufgroup#tabline(shownum=0, edge=5)
   for n in execute('ls')->split('\n')
     let label = n[10: 9 + n[10:]->stridx("\"")]->pathshorten(length)[:length]
     let label = n[4] == '%' ? '%#TabLineSel#'. label : '%#TabLine#'.label
-    let result = result .' '. label
+    let label = n[7] == '+' ? label . ' +' : label
+    let result = result .' '. label 
   endfor
   let start = result->stridx('%#TabLineSel#')
   let current_tab = string(tabpagenr()).'/'.string(tabpagenr('$'))
