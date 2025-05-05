@@ -127,9 +127,6 @@ function bufgroup#new_filter(key)
   call bufgroup#open_group(a:key)
 endfunction
 
-autocmd BufNewFile,BufReadPost * :call bufgroup#add('all')
-autocmd TabLeave * :let t:BufGroupOn = 0
-autocmd TabEnter * :call bufgroup#_change_tab()
 
 function! _BufComp(x,y,z)
   return keys(t:BufGroups)
@@ -159,9 +156,9 @@ function! bufgroup#open_buf(group, type=[''])
         break
       endif
     endfor
-    if loaded == 0
-      bun
-    endif
+    "if loaded == 0
+    "  bun
+    "endif
     set ei=
   endfor
   if len(execute('ls!')->split("\n")) == 0
@@ -208,8 +205,34 @@ function bufgroup#_make_tab()
   let t:BufGroupsLocation = #{all: 1}
   let t:BufGroupName = 'all'
   let t:BufGroupOn = 1
-  call bufgroup#open_buf(new_group)
+  call bufgroup#open_buf(s:BufGroupPrev)
 endfunction
+
+function bufgroup#_leave_tab()
+  let t:BufGroupOn = 0
+  call bufgroup#open_group(t:BufGroupName)
+  let s:BufGroupPrev = t:BufGroups['all']
+endfunction
+
+
+function bufgroup#enable()
+  autocmd BufNewFile,BufReadPost * :call bufgroup#add('all')
+  autocmd TabLeave * :call bufgroup#_leave_tab()
+  autocmd TabEnter * :call bufgroup#_change_tab()
+
+  if g:bufgroupmode == 1
+    set tabline=
+    set showtabline=1
+    noremap T :tabnew<CR>
+    let g:bufgroupmode=0
+  else
+    set tabline=%!BufGroupTabLine()
+    set showtabline=2
+    noremap T :call bufgroup#_make_tab()<CR>
+    let g:bufgroupmode=1
+  endif
+endfunction
+
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
