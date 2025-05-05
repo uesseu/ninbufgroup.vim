@@ -214,8 +214,12 @@ function bufgroup#_leave_tab()
   let s:BufGroupPrev = t:BufGroups['all']
 endfunction
 
+function bufgroup#default_tabline()
+  return tabpagenr().':'.bufgroup#get_groupname().':'.bufgroup#tabline(1)
+endfunction
 
-function bufgroup#enable()
+let g:bufgroupmode=0
+function bufgroup#toggle()
   autocmd BufNewFile,BufReadPost * :call bufgroup#add('all')
   autocmd TabLeave * :call bufgroup#_leave_tab()
   autocmd TabEnter * :call bufgroup#_change_tab()
@@ -226,7 +230,7 @@ function bufgroup#enable()
     noremap T :tabnew<CR>
     let g:bufgroupmode=0
   else
-    set tabline=%!BufGroupTabLine()
+    set tabline=%!bufgroup#default_tabline()
     set showtabline=2
     noremap T :call bufgroup#_make_tab()<CR>
     let g:bufgroupmode=1
