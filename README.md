@@ -9,18 +9,10 @@ and offers ui like 'tab group' of web browsers.
 This is a simple program. For me, searching, learning and configuring such plugin takes more time than writing code by myself. This is the only reason. ;-(
 
 ## Example
-I wrote code like bellow in my vimrc.
+Enable the plugin.
 
 ```vim
-function BufGroupTabLine()
-  return bufgroup#get_groupname().':'.bufgroup#tabline(1)
-endfunction
-function BufGroupMode()
-  set tabline=%!BufGroupTabLine()
-  set showtabline=2
-  noremap T :call bufgroup#_make_tab()<CR>
-endfunction
-au VimEnter * call BufGroupMode()
+au VimEnter * call bufgroup#toggle()
 ```
 
 
@@ -30,6 +22,7 @@ noremap gN :call bufgroup#next()<CR>
 noremap gP :call bufgroup#prev()<CR>
 noremap gn :bn<CR>
 noremap gp :bp<CR>
+noremap gd :call bufgroup#remove_group()<CR>
 command! -nargs=1 BufGroupNew :call bufgroup#new(<f-args>)
 command! -nargs=1 -complete=customlist,_BufComp
       \ BufGroupAdd :call bufgroup#add(<f-args>)
@@ -39,7 +32,6 @@ command! -nargs=1 -complete=customlist,_BufComp
       \ BufgroupOpen :call bufgroup#open_group('<args>')
 command! -nargs=1 BufGroupFilter :call bufgroup#filter(<f-args>)
 command! -nargs=1 BufGroupNewFilter :call bufgroup#new_filter(<f-args>)
-And then wrote like bellow.
 ```
 
 
