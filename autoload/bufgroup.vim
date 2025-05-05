@@ -27,7 +27,7 @@ function! bufgroup#get(flag='', vflag='')
       call insert(result, line[:2])
     endif
   endfor
-  return result
+  return result->sort()->uniq()
 endfunction
 
 function! bufgroup#_filter(buf, word)
@@ -40,9 +40,10 @@ function! bufgroup#_filter(buf, word)
   return result
 endfunction
 
-let s:BufGroups = #{all: []}
+let t:BufGroups = #{all: []}
 let t:BufGroupsLocation = #{all: 1}
 let t:BufGroupName = 'all'
+let t:BufGroupOn = 1
 
 function bufgroup#get_groupname()
   return t:BufGroupName
@@ -50,10 +51,12 @@ endfunction
 
 function bufgroup#open_group(key)
   " open buffer group named key.
-  let s:BufGroups[t:BufGroupName] = bufgroup#get()
+  if t:BufGroupOn == 1
+    let t:BufGroups[t:BufGroupName] = bufgroup#get()
+  endif
   call extend(t:BufGroupsLocation, {t:BufGroupName : bufnr()})
   let t:BufGroupName = a:key
-  call bufgroup#open_buf(s:BufGroups[t:BufGroupName])
+  call bufgroup#open_buf(t:BufGroups[t:BufGroupName])
   exec t:BufGroupsLocation[a:key].'b'
 endfunction
 
@@ -66,7 +69,7 @@ function bufgroup#remove_group(key='.')
     let key = a:key
   endif
   call bufgroup#next()
-  unlet s:BufGroups[key]
+  unlet t:BufGroups[key]
   unlet t:BufGroupsLocation[key]
 endfunction
 
@@ -74,7 +77,7 @@ function bufgroup#rename_group(key)
   if a:key == 'all'
     return
   endif
-  call extend(s:BufGroups, {a:key : s:BufGroups[t:BufGroupName]})
+  call extend(t:BufGroups, {a:key : t:BufGroups[t:BufGroupName]})
   call bufgroup#remove_group(t:BufGroupName)
   let t:BufGroupName = a:key
   call bufgroup#open_group(a:key)
@@ -82,32 +85,32 @@ endfunction
 
 function bufgroup#next()
   " Go to next buffer group
-  let keys = s:BufGroups->keys()
+  let keys = t:BufGroups->keys()
   call bufgroup#open_group(
-        \keys[(keys->index(t:BufGroupName)+1) % s:BufGroups->len()])
+        \keys[(keys->index(t:BufGroupName)+1) % t:BufGroups->len()])
 endfunction
 
 function bufgroup#prev()
   " Go to previous buffer group
-  let keys = s:BufGroups->keys()
+  let keys = t:BufGroups->keys()
   call bufgroup#open_group(
-        \keys[(keys->index(t:BufGroupName)-1) % s:BufGroups->len()])
+        \keys[(keys->index(t:BufGroupName)-1) % t:BufGroups->len()])
 endfunction
 
 
 function bufgroup#add(key)
-  let s:BufGroups[a:key] = uniq(s:BufGroups[a:key] + bufgroup#get('%'))
+  let t:BufGroups[a:key] = (t:BufGroups[a:key] + bufgroup#get('%'))->sort()->uniq()
 endfunction
 
 function bufgroup#new(key)
-  call extend(s:BufGroups, {a:key : []})
+  call extend(t:BufGroups, {a:key : []})
   let t:BufGroupName = a:key
   call bufgroup#open_group(a:key)
 endfunction
 
 function bufgroup#add_all(key)
   " Add all the buffers to other group
-  let s:BufGroups[a:key] = uniq(s:BufGroups[a:key] + bufgroup#get())
+  let t:BufGroups[a:key] = (t:BufGroups[a:key] + bufgroup#get())->sort()->uniq()
 endfunction
 
 function bufgroup#filter(key)
@@ -117,29 +120,36 @@ endfunction
 
 function bufgroup#new_filter(key)
   " Filter buffers and make new group
-  call extend(s:BufGroups, {a:key : []})
+  call extend(t:BufGroups, {a:key : []})
   let t:BufGroupName = a:key
   eval bufgroup#get()->bufgroup#_filter(a:key)->bufgroup#open_buf()
-  let s:BufGroups[a:key] = uniq(s:BufGroups[a:key] + bufgroup#get())
+  let t:BufGroups[a:key] = (t:BufGroups[a:key] + bufgroup#get())->sort()->uniq()
   call bufgroup#open_group(a:key)
 endfunction
 
 autocmd BufNewFile,BufReadPost * :call bufgroup#add('all')
+autocmd TabLeave * :let t:BufGroupOn = 0
+autocmd TabEnter * :call bufgroup#_change_tab()
 
 function! _BufComp(x,y,z)
-  return keys(s:BufGroups)
+  return keys(t:BufGroups)
 endfunction
 
 function! bufgroup#open_buf(group, type=[''])
   " Open buffer
   " group: id list of buffer
   " type: type of buffer
+  call bufgroup#add_all('all')
   for line in execute('ls!')->split("\n")
+    let loaded = bufloaded(str2nr(line[:2]))? 1 : 0
+    if loaded == 0
+      set ei=BufEnter,BufReadPost,BufLeave
+    endif
     exec $"b {line[:2]}"
     setlocal nobuflisted
     let types = execute('set bt')->trim()->split('=')
     let type = types->len() == 1? '' : types[1]->trim()
-    for buf in a:group
+    for buf in a:group->sort()->uniq()
       if line[:2] == buf
         for t in a:type
           if type == t
@@ -149,6 +159,10 @@ function! bufgroup#open_buf(group, type=[''])
         break
       endif
     endfor
+    if loaded == 0
+      bun
+    endif
+    set ei=
   endfor
   if len(execute('ls!')->split("\n")) == 0
     exec e
@@ -179,15 +193,22 @@ function bufgroup#tabline(shownum=0, edge=5)
         \: result.'%#TabLineFill#'
 endfunction
 
+function bufgroup#_change_tab()
+  if exists('t:BufGroupName')
+    call bufgroup#open_group(t:BufGroupName)
+  endif
+  let t:BufGroupOn = 1
+endfunction
+
 function bufgroup#_make_tab()
-  let BufGroupsLocation = t:BufGroupsLocation
-  let BufGroupName = t:BufGroupName
+  let new_group = t:BufGroups['all']->deepcopy()->uniq()
+  let t:BufGroupOn = 0
   tabnew
-  let t:BufGroupsLocation = BufGroupsLocation
-  let t:BufGroupName = BufGroupName
-  call bufgroup#open_group('all')
-  bn
-  $bd
+  let t:BufGroups = #{all: new_group}
+  let t:BufGroupsLocation = #{all: 1}
+  let t:BufGroupName = 'all'
+  let t:BufGroupOn = 1
+  call bufgroup#open_buf(new_group)
 endfunction
 
 let &cpo = s:save_cpo
