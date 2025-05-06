@@ -8,6 +8,7 @@ scriptencoding utf-8
 if exists('g:loaded_ninbufgroup')
   finish
 endif
+let g:bufgroupmode=0
 let s:save_cpo = &cpo
 set cpo&vim
 let g:loaded_ninbufgroup = 1
@@ -218,7 +219,6 @@ function bufgroup#default_tabline()
   return tabpagenr().':'.bufgroup#get_groupname().':'.bufgroup#tabline(1)
 endfunction
 
-let g:bufgroupmode=0
 function bufgroup#toggle()
   autocmd BufNewFile,BufReadPost * :call bufgroup#add('all')
   autocmd TabLeave * :call bufgroup#_leave_tab()
